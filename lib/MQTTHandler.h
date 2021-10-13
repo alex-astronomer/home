@@ -15,7 +15,7 @@ class MQTTHandler {
         char* user;
         char* pass;
         Light lightController = Light();
-        void publishStringToState(String topic, String payload);
+        void publishString(String topic, String payload);
         void handleCommand(String command);
         void handleBrightnessCommand(String brightness);
         void handleRgbCommand(String rgbTuple);

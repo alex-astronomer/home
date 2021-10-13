@@ -13,19 +13,16 @@ MQTTHandler::MQTTHandler(char* user, char* pass, Light &light) {
 }
 
 void MQTTHandler::publishString(String topic, String payload) {
-    int payloadLen = payload.length() + 1;
-    char payloadArr[payloadLen];
-    payload.toCharArray(payloadArr, payloadLen);
+    char topicArr[topic.length() + 1];
+    Utils::writeStringToCharArr(topic, topicArr);
 
-    int topicLength = topic.length() + 1;
-    char topicArr[topicLength];
-    topic.toCharArray(topicArr, topicLength);
+    char payloadArr[payload.length() + 1];
+    Utils::writeStringToCharArr(payload, payloadArr);
     
     client.publish(topicArr, payloadArr);
 }
 
 void MQTTHandler::handleCommand(String command) {
-    // lightController.blink(4);
     String stateTopic = deviceName + "/state";
     if (command == "ON") {
         lightController.on();
@@ -48,7 +45,6 @@ void MQTTHandler::handleRgbCommand(String csvRgb) {
 }
 
 void MQTTHandler::callback(char* topic, byte* payload, unsigned int length) {
-    // lightController.blink(14);
     std::map<String, std::function<void(String)>> callbackFnMap = {
         {deviceName, std::bind(&MQTTHandler::handleCommand, this, std::placeholders::_1)},
         {deviceName + "/brightness", std::bind(&MQTTHandler::handleBrightnessCommand, this, std::placeholders::_1)},
@@ -67,9 +63,8 @@ void MQTTHandler::init(WiFiClient &net) {
         std::bind(&MQTTHandler::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
     );
     String availableStateStr = deviceName + "/available";
-    int availableStateLen = availableStateStr.length() + 1;
-    char stateArr[availableStateLen];
-    availableStateStr.toCharArray(stateArr, availableStateLen);
+    char stateArr[availableStateStr.length() + 1];
+    Utils::writeStringToCharArr(availableStateStr, stateArr);
     while (!client.connected()) {
         if (!client.connect(SPEC, "alex", "assblood", stateArr, 0, true, "0")) {
             delay(1000);
@@ -77,9 +72,8 @@ void MQTTHandler::init(WiFiClient &net) {
     }
     client.publish(stateArr, "1", true);
 
-    availableStateStr = deviceName + "/#";
-    availableStateLen = availableStateStr.length() + 1;
-    char subscribeArr[availableStateLen];
-    availableStateStr.toCharArray(subscribeArr, availableStateLen);
+    String subscribeStr = deviceName + "/#";
+    char subscribeArr[subscribeStr.length() + 1];
+    Utils::writeStringToCharArr(subscribeStr, subscribeArr);
     client.subscribe(subscribeArr);
 }
