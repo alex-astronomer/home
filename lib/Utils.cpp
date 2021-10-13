@@ -8,3 +8,8 @@ String Utils::bytePointerToString(byte* pointer, int length) {
     }
     return payloadStr;
 }
+
+void Utils::writeStringToCharArr(String src, char* dest) {
+    int srcLen = src.length() + 1;
+    src.toCharArray(dest, srcLen);
+}
