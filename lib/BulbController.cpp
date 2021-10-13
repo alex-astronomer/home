@@ -10,9 +10,7 @@ BulbController::BulbController (char* ssid, char* wifiPassword, char* mqttUser, 
 void BulbController::init() {
     light.init();
     wifiHandler.init();
-    light.blink(5);
     mqttHandler.init(wifiHandler.net);
-    light.blink(4);
 }
 
 void BulbController::loop() {
