@@ -4,6 +4,7 @@
 #include <WifiHandler.h>
 #include <MqttHandler.h>
 #include <Light.h>
+#include <Arduino.h>
 
 class BulbController {
     public:

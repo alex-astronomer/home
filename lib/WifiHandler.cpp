@@ -1,5 +1,6 @@
 #include <WifiHandler.h>
 #include <ArduinoOTA.h>
+#include <Arduino.h>
 
 WifiHandler::WifiHandler() {}
 
@@ -10,7 +11,7 @@ WifiHandler::WifiHandler(char* ssid, char* password) {
 
 void WifiHandler::init() {
     WiFi.mode(WIFI_STA);
-    WiFi.hostname("dev");
+    WiFi.hostname(String(SPEC));
     WiFi.begin(ssid, password);
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
         delay(5000);

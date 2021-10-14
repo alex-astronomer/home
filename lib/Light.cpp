@@ -11,10 +11,11 @@ void Light::init() {
 }
 
 void Light::blink(int pin) {
+    int delayMs = 250;
     digitalWrite(pin, LOW);
-    delay(500);
+    delay(delayMs);
     digitalWrite(pin, HIGH);
-    delay(500);
+    delay(delayMs);
     digitalWrite(pin, LOW);
 }
 

@@ -15,11 +15,12 @@ class MQTTHandler {
         char* user;
         char* pass;
         Light lightController = Light();
-        void publishStringToState(char* stateTopic, String statePayloadStr);
+        void publishString(String topic, String payload);
         void handleCommand(String command);
         void handleBrightnessCommand(String brightness);
         void handleRgbCommand(String rgbTuple);
         void callback(char* topic, byte* payload, unsigned int length);
+        String deviceName = String(SPEC);
 };
 
 #endif
