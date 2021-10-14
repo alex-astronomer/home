@@ -11,11 +11,11 @@ class MQTTHandler {
         MQTTHandler(char* user, char* pass, Light &light);
         void init(WiFiClient &net);
         PubSubClient client;
+        void publishString(String topic, String payload);
     private:
         char* user;
         char* pass;
         Light lightController = Light();
-        void publishString(String topic, String payload);
         void handleCommand(String command);
         void handleBrightnessCommand(String brightness);
         void handleRgbCommand(String rgbTuple);

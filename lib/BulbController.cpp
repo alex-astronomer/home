@@ -11,6 +11,7 @@ void BulbController::init() {
     light.init();
     wifiHandler.init();
     mqttHandler.init(wifiHandler.net);
+    mqttHandler.publishString(String(SPEC) + "/ip", WiFi.localIP());
 }
 
 void BulbController::loop() {
