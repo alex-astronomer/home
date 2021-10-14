@@ -1,0 +1,15 @@
+platform: mqtt
+availability:
+  - payload_available: 1
+    payload_not_available: 0
+    topic: "bulbName/available"
+brightness_command_topic: "bulbName/brightness"
+brightness_state_topic: "bulbName/brightness/state"
+# color_mode_state_topic: "bulbName/color_mode/state"
+command_topic: "bulbName"
+name: "bulbName"
+rgb_command_topic: "bulbName/rgb"
+rgb_state_topic: "bulbName/rgb/state"
+state_topic: "bulbName/state"
+unique_id: "bulbName"
+# white_command_topic: "bulbName/white"
