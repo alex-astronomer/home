@@ -1,6 +1,9 @@
 #ifndef Light_h
 #define Light_h
 
+#include <Arduino.h>
+#include <map>
+
 class Light {
     public:
         Light();
@@ -10,9 +13,11 @@ class Light {
         void setBrightness(int brightness);
         void setRgb(int red, int green, int blue);
         void blink(int i);
+        std::map<String, String> getState();
     private:
         int allPins[4] = {5, 4, 12, 14};
         int pinBrightness[4] = {0, 0, 0, 0};
+        String state = "OFF";
         void setPinBrightness(int brightnessArr[4]);
 };
 
