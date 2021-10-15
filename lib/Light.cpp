@@ -1,5 +1,6 @@
 #include <Light.h>
 #include <Arduino.h>
+#include <map>
 
 Light::Light() {}
 
@@ -23,12 +24,14 @@ void Light::on() {
     for (int i = 0; i < sizeof(allPins)/sizeof(allPins[0]); i++) {
         analogWrite(allPins[i], pinBrightness[i]);
     }
+    state = "ON";
 }
 
 void Light::off() {
     for (int i = 0; i < sizeof(allPins)/sizeof(allPins[0]); i++) {
         digitalWrite(allPins[i], LOW);
     }
+    state = "OFF";
 }
 
 void Light::setBrightness(int brightness) {
@@ -45,4 +48,12 @@ void Light::setPinBrightness(int brightnessArr[4]) {
     for (int i = 0; i < 4; i++) {
         pinBrightness[i] = brightnessArr[i];
     }
+}
+
+std::map<String, String> Light::getState() {
+    return {
+        {"brightness", String(pinBrightness[0])},
+        {"rgb", String(pinBrightness[1]) + "," + String(pinBrightness[2]) + "," + String(pinBrightness[3])},
+        {"state", state}
+    };
 }
