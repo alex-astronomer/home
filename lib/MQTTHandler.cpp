@@ -2,6 +2,7 @@
 #include <ArduinoOTA.h>
 #include <Utils.h>
 #include <map>
+#include <tuple>
 #include <Rgb.h>
 
 MQTTHandler::MQTTHandler() {}
@@ -19,40 +20,65 @@ void MQTTHandler::publishString(String topic, String payload) {
     char payloadArr[payload.length() + 1];
     Utils::writeStringToCharArr(payload, payloadArr);
     
-    client.publish(topicArr, payloadArr);
+    client.publish(topicArr, payloadArr, true);
 }
 
-void MQTTHandler::handleCommand(String command) {
+bool MQTTHandler::handleCommand(String command) {
     String stateTopic = deviceName + "/state";
     if (command == "ON") {
         lightController.on();
-        publishString(stateTopic, command);
+        return true;
     } else if (command == "OFF") {
         lightController.off();   
-        publishString(stateTopic, command);
+        return true;
+    }
+    return false;
+}
+
+bool MQTTHandler::handleBrightnessCommand(String brightness) {
+    lightController.setBrightness(brightness.toInt());
+    return true;
+}
+
+bool MQTTHandler::handleRgbCommand(String csvRgb) {
+    Rgb rgb = Rgb(csvRgb);
+    lightController.setRgb(rgb.red, rgb.green, rgb.blue);
+    return true;
+}
+
+bool MQTTHandler::handleStartup(String status) {
+    if (status == "online") {
+        return true;
+    }
+    return false;
+}
+
+void MQTTHandler::sendState() {
+    std::map<String, String> state = lightController.getState();
+    std::tuple<String, String> updates[3] = {
+        {brightnessTopic, state["brightness"]},
+        {rgbTopic, state["rgb"]},
+        {stateTopic, state["state"]}
+    };
+    for (int i = 0; i < sizeof(updates)/sizeof(updates[0]); i++) {
+        std::tuple<String, String> currentUpdate = updates[i];
+        publishString(std::get<0>(currentUpdate) + "/state", std::get<1>(currentUpdate));
     }
 }
 
-void MQTTHandler::handleBrightnessCommand(String brightness) {
-    lightController.setBrightness(brightness.toInt());
-    publishString(deviceName + "/brightness/state", brightness);
-}
-
-void MQTTHandler::handleRgbCommand(String csvRgb) {
-    Rgb rgb = Rgb(csvRgb);
-    lightController.setRgb(rgb.red, rgb.green, rgb.blue);
-    publishString(deviceName + "/rgb/state", csvRgb);
-}
-
 void MQTTHandler::callback(char* topic, byte* payload, unsigned int length) {
-    std::map<String, std::function<void(String)>> callbackFnMap = {
-        {deviceName, std::bind(&MQTTHandler::handleCommand, this, std::placeholders::_1)},
-        {deviceName + "/brightness", std::bind(&MQTTHandler::handleBrightnessCommand, this, std::placeholders::_1)},
-        {deviceName + "/rgb", std::bind(&MQTTHandler::handleRgbCommand, this, std::placeholders::_1)}
+    std::map<String, std::function<bool(String)>> callbackFnMap = {
+        {stateTopic, std::bind(&MQTTHandler::handleCommand, this, std::placeholders::_1)},
+        {brightnessTopic, std::bind(&MQTTHandler::handleBrightnessCommand, this, std::placeholders::_1)},
+        {rgbTopic, std::bind(&MQTTHandler::handleRgbCommand, this, std::placeholders::_1)},
+        {"homeassistant/status", std::bind(&MQTTHandler::handleStartup, this, std::placeholders::_1)}
     };
     String payloadStr = Utils::bytePointerToString(payload, length);
     if (callbackFnMap.find(topic) != callbackFnMap.end()) {
-        callbackFnMap[topic](payloadStr);
+        bool commandExecuted = callbackFnMap[topic](payloadStr);
+        if (commandExecuted) {
+            sendState();
+        }
     }
 }
 
@@ -76,4 +102,5 @@ void MQTTHandler::init(WiFiClient &net) {
     char subscribeArr[subscribeStr.length() + 1];
     Utils::writeStringToCharArr(subscribeStr, subscribeArr);
     client.subscribe(subscribeArr);
+    client.subscribe("homeassistant/status");
 }
