@@ -1,0 +1,17 @@
+dev:
+  - name: dev
+    ip: 10.0.0.249
+stage:
+  - name: office1
+    ip: 10.0.0.156
+  - name: office2
+    ip: 10.0.0.52
+prod:
+  - name: dining1
+    ip: 10.0.0.153
+  - name: dining2
+    ip: 10.0.0.95
+  - name: living1
+    ip: 10.0.0.33
+  - name: living2
+    ip: 10.0.0.76
