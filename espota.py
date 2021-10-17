@@ -66,8 +66,9 @@ def update_progress(progress):
     sys.stderr.write(text)
     sys.stderr.flush()
   else:
-    sys.stderr.write('.')
-    sys.stderr.flush()
+    # sys.stderr.write('.')
+    # sys.stderr.flush()
+    pass
 
 def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, command = FLASH):
   # Create a TCP/IP socket
@@ -106,6 +107,7 @@ def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, comm
     data = sock2.recv(128).decode()
   except Exception:
     logging.error('No Answer')
+    logging.error(localAddr)
     sock2.close()
     return 1
   if (data != "OK"):
@@ -159,7 +161,7 @@ def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, comm
     if (PROGRESS):
       update_progress(0)
     else:
-      sys.stderr.write('Uploading')
+      sys.stderr.write('Uploading\n')
       sys.stderr.flush()
     offset = 0
     while True:
@@ -197,6 +199,7 @@ def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, comm
         if reply.find('E') >= 0:
           sys.stderr.write('\n')
           logging.error('%s', reply)
+          logging.error(localAddr)
           received_error = True
         elif reply.find('O') >= 0:
           logging.info('Result: OK')
