@@ -6,11 +6,11 @@ if __name__ == '__main__':
         template_string = f.read()
 
     light_config = {
-        "entities": ["dev", "bulb0", "bulb1", "bulb2", "bulb3", "bulb4", "bulb5"],
+        "entities": ["dev", "office1", "office2", "dining1", "dining2", "living1", "living2"],
         "groups": {
-            "Dining Room Lights": ["bulb0", "bulb1"],
-            "Living Room Lights": ["bulb2", "bulb3"],
-            "Office Lights": ["bulb4", "bulb5"],
+            "Dining Room Lights": ["dining1", "dining2"],
+            "Living Room Lights": ["living1", "living2"],
+            "Office Lights": ["office1", "office2"],
         }
     }
     yaml_config = []
