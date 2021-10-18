@@ -27,12 +27,12 @@ def compile_and_upload(bulb):
     ])
 
 
-with open("./config.yaml", "r") as f:
+with open("/deploy/scripts/config.yaml", "r") as f:
     bulb_config = yaml.load(f, Loader=yaml.Loader)
 
 processes = []
 
-for bulb in bulb_config["stage"]:
+for bulb in bulb_config["prod"]:
     p = multiprocessing.Process(
         target=compile_and_upload,
         args=(bulb,),
