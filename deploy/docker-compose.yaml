@@ -8,6 +8,6 @@ services:
       - ../lib:/deploy/lib
       - ../home.ino:/deploy/home/home.ino
       - ../build:/deploy/build
-    command: sleep 1200
+    command: python /deploy/scripts/deploy.py
     privileged: true
     network_mode: host
