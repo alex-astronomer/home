@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  deploy:
+    build: .
+    volumes:
+      - .:/deploy/scripts
+      - ../lib:/deploy/lib
+      - ../home.ino:/deploy/home/home.ino
+    command: sleep 1200
+    privileged: true
+    network_mode: host
+    ports:
+      - 10500:10500

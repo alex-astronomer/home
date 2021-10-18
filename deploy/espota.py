@@ -71,6 +71,7 @@ def update_progress(progress):
     pass
 
 def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, command = FLASH):
+  localPort = 10500
   # Create a TCP/IP socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   server_address = (localAddr, localPort)
@@ -144,15 +145,16 @@ def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, comm
   sock2.close()
 
   logging.info('Waiting for device...')
-  try:
-    sock.settimeout(10)
-    connection, client_address = sock.accept()
-    sock.settimeout(None)
-    connection.settimeout(None)
-  except Exception:
-    logging.error('No response from device')
-    sock.close()
-    return 1
+  # try:
+  sock.settimeout(10)
+  print(localAddr, localPort)
+  connection, client_address = sock.accept()
+  sock.settimeout(None)
+  connection.settimeout(None)
+  # except Exception:
+  #   logging.error('No response from device')
+  #   sock.close()
+  #   return 1
 
   received_ok = False
 
