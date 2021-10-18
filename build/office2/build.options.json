@@ -1,0 +1,12 @@
+{
+  "additionalFiles": "",
+  "builtInLibrariesFolders": "",
+  "builtInToolsFolders": "",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "build.extra_flags=-DESP8266 -DSPEC=\"office2\",build.warn_data_percentage=75",
+  "fqbn": "esp8266:esp8266:wifi_slot",
+  "hardwareFolders": "/root/.arduino15/packages",
+  "otherLibrariesFolders": "/root/Arduino/libraries",
+  "runtime.ide.version": "10607",
+  "sketchLocation": "/deploy/home/home.ino"
+}
