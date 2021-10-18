@@ -71,7 +71,6 @@ def update_progress(progress):
     pass
 
 def serve(remoteAddr, localAddr, remotePort, localPort, password, filename, command = FLASH):
-  localPort = 10500
   # Create a TCP/IP socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   server_address = (localAddr, localPort)

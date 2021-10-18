@@ -1,3 +1,4 @@
+from os import path
 import subprocess
 import multiprocessing
 import shlex
@@ -6,16 +7,17 @@ import espota
 
 
 def compile_and_upload(bulb):
-    compile_command = f"""
-        arduino-cli compile 
-        -b esp8266:esp8266:wifi_slot 
-        --build-path /deploy/build/{bulb["name"]}
-        --build-cache-path /deploy/build/{bulb["name"]}/cache 
-        --build-property "build.extra_flags=-DESP8266 -DSPEC=\\"{bulb["name"]}\\"" 
-        --library /deploy/lib
-        /deploy/home/home.ino
-        """
-    subprocess.run(shlex.split(compile_command), universal_newlines=True)
+    if not path.exists(f'/deploy/build/{bulb["name"]}/home.ino.bin'):
+        compile_command = f"""
+            arduino-cli compile 
+            -b esp8266:esp8266:wifi_slot 
+            --build-path /deploy/build/{bulb["name"]}
+            --build-cache-path /deploy/build/{bulb["name"]}/cache 
+            --build-property "build.extra_flags=-DESP8266 -DSPEC=\\"{bulb["name"]}\\"" 
+            --library /deploy/lib
+            /deploy/home/home.ino
+            """
+        subprocess.run(shlex.split(compile_command), universal_newlines=True)
     espota.main([
         '/deploy/scripts/espota.py',
         '-i',
