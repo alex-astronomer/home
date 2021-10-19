@@ -1,6 +1,6 @@
 FROM python:latest
 
-RUN pip install pyyaml
+RUN pip install pyyaml docopt
 
 RUN mkdir -p /arduino-cli/bin
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/arduino-cli/bin sh
