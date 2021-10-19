@@ -9,7 +9,6 @@ Options:
     -c --compile    Only compile [default: True].
     -u --upload     Only upload [default: True].
 """
-from os import path
 import subprocess
 import multiprocessing
 import shlex
