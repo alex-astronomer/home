@@ -1,4 +1,4 @@
-FROM python:latest
+FROM python:latest-buster
 
 RUN pip install pyyaml docopt
 
