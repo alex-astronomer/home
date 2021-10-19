@@ -8,6 +8,4 @@ services:
       - ../lib:/deploy/lib
       - ../home.ino:/deploy/home/home.ino
       - ../build:/deploy/build
-    command: python /deploy/scripts/deploy.py
-    privileged: true
     network_mode: host
