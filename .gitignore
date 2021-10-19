@@ -1,4 +1,5 @@
-build
+build/*/*
+!build/*/home.ino.bin
 configuration.yaml
 settings.json
 .idea

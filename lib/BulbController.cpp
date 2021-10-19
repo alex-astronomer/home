@@ -1,6 +1,6 @@
 #include <BulbController.h>
 #include <WifiHandler.h>
-#include <MqttHandler.h>
+#include <MQTTHandler.h>
 
 BulbController::BulbController (char* ssid, char* wifiPassword, char* mqttUser, char* mqttPassword) {
     wifiHandler = WifiHandler(ssid, wifiPassword);

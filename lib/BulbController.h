@@ -2,7 +2,7 @@
 #define BulbController_h
 
 #include <WifiHandler.h>
-#include <MqttHandler.h>
+#include <MQTTHandler.h>
 #include <Light.h>
 #include <Arduino.h>
 

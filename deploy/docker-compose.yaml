@@ -1,0 +1,11 @@
+version: '3.3'
+
+services:
+  deploy:
+    build: .
+    volumes:
+      - .:/deploy/scripts
+      - ../lib:/deploy/lib
+      - ../home.ino:/deploy/home/home.ino
+      - ../build:/deploy/build
+    network_mode: host
