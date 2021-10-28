@@ -13,7 +13,7 @@ class MqttHandler:
             port=1883,
             user="alex",
             password="assblood",
-            keepalive=5,
+            keepalive=10,
         )
         self.light = light
         self.client.set_callback(self.msg_callback)
@@ -27,17 +27,18 @@ class MqttHandler:
             time.sleep(5)
         print('got connected to MQTT.')
         self.client.publish("umqtt-dev/available", "1", True)
-        self.client.subscribe("umqtt-dev")
+        self.client.subscribe("umqtt-dev/#")
 
     def msg_callback(self, topic, message):
         topic_str = topic.decode()
         message_str = message.decode()
         print("got callback {} {}".format(topic_str, message_str))
         if topic_str == "umqtt-dev":
-            print("found message")
             if message_str == "ON":
                 self.light.on()
             elif message_str == "OFF":
                 self.light.off()
+        elif topic_str == "umqtt-dev/brightness":
+            self.light.set_brightness(message_str)
 
 
