@@ -40,5 +40,9 @@ class MqttHandler:
                 self.light.off()
         elif topic_str == "umqtt-dev/brightness":
             self.light.set_brightness(message_str)
+        elif topic_str == "umqtt-dev/rgb":
+            red, green, blue = message_str.split(',')
+            self.light.set_rgb(red, green, blue)
+
 
 
