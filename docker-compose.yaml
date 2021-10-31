@@ -21,6 +21,7 @@ services:
       - "9001:9001"
   sentinel:
     build: ./sentinel
-    volumes: ./sentinel/sentinel-wifi.py:/scripts/sentinel-wifi.py
+    volumes:
+      - ./sentinel/sentinel-wifi.py:/scripts/sentinel-wifi.py
     command: ["python3", "/scripts/sentinel-wifi.py"]
     network_mode: host
