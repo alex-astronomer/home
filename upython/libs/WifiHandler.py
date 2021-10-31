@@ -8,6 +8,10 @@ class WifiHandler:
         self.connect()
 
     def connect(self):
+        """
+        Connect to WiFi and print connection details.
+
+        """
         self.wlan.active(True)
         if not self.wlan.isconnected():
             print('Trying to connect to network...')

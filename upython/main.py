@@ -6,12 +6,11 @@ from libs.MqttHandler import MqttHandler
 
 def main():
     light = Light()
-    light.blink(delay=0.5)
     wifi = WifiHandler()
     mqtt = MqttHandler(light)
-    light.blink(delay=0.5)
     last_ping = time.time()
     while True:
+        # loop through to check messages and every 8 seconds ping to keep the mqtt connection alive
         now = time.time()
         mqtt.client.check_msg()
         if now - last_ping > 8:
