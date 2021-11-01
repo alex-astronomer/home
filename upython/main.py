@@ -9,6 +9,8 @@ def main():
     wifi = WifiHandler()
     mqtt = MqttHandler(light)
     last_ping = time.time()
+    print(light.get_state())
+    mqtt.send_state()
     while True:
         # loop through to check messages and every 8 seconds ping to keep the mqtt connection alive
         now = time.time()

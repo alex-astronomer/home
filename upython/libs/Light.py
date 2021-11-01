@@ -7,11 +7,13 @@ class Light:
     ON = 1023
     OFF = 0
     state = "OFF"
+    color_brightness = 0
     pins = {
         key: {"pin": machine.PWM(machine.Pin(value), freq=500, duty=0), "brightness": 0}
         for key, value
         in {"white": 5, "red": 4, "green": 12, "blue": 14}.items()
     }
+    full_range_color_values = {"red": 0, "green": 0, "blue": 0}
 
     def on(self):
         """
@@ -31,7 +33,7 @@ class Light:
             self.pins[color]["pin"].duty(0)
         self.state = "OFF"
 
-    def set_brightness(self, brightness):
+    def set_white(self, white):
         """
         Set white brightness and turn off the RGB pins
 
@@ -42,11 +44,31 @@ class Light:
         for d in self.pins.values():
             d["brightness"] = 0
         # normalize the brightness from 0-255 -> 0-1023
-        self.pins["white"]["brightness"] = self.normalize_brightness(brightness)
+        self.pins["white"]["brightness"] = math.floor(self.normalize_brightness(white))
+
+    def set_color_brightness(self, brightness):
+        """
+        Set color brightness and turn off the white pin.
+
+        :param brightness:
+        :return:
+        """
+        self.pins["white"]["brightness"] = 0
+        self.color_brightness = float(brightness)/255
+        self.pins["red"]["brightness"] = math.floor(
+            self.full_range_color_values["red"] * float(self.color_brightness)
+        )
+        self.pins["green"]["brightness"] = math.floor(
+            self.full_range_color_values["green"] * float(self.color_brightness)
+        )
+        self.pins["blue"]["brightness"] = math.floor(
+            self.full_range_color_values["blue"] * float(self.color_brightness)
+        )
+        self.
 
     def set_rgb(self, red, green, blue):
         """
-        Set RGB brightness and turn off the white pin
+        Set RGB full-range color values (not adjusted for brightness) and turn off the white pin
 
         :param red: Brightness of red 0-255
         :type red: Union[int, str]
@@ -56,11 +78,15 @@ class Light:
         :type blue: Union[int, str]
 
         """
+        self.full_range_color_values["red"] = math.floor(self.normalize_brightness(red))
+        self.full_range_color_values["green"] = math.floor(self.normalize_brightness(green))
+        self.full_range_color_values["blue"] = math.floor(self.normalize_brightness(blue))
+
         self.pins["white"]["brightness"] = 0
         # normalize all brightnesses from 0-255 -> 0-1023
-        self.pins["red"]["brightness"] = self.normalize_brightness(red)
-        self.pins["green"]["brightness"] = self.normalize_brightness(green)
-        self.pins["blue"]["brightness"] = self.normalize_brightness(blue)
+        self.pins["red"]["brightness"] = math.floor(self.normalize_brightness(red) * float(self.color_brightness))
+        self.pins["green"]["brightness"] = math.floor(self.normalize_brightness(green) * float(self.color_brightness))
+        self.pins["blue"]["brightness"] = math.floor(self.normalize_brightness(blue) * float(self.color_brightness))
 
     def normalize_brightness(self, brightness, old_max=255, new_max=1023):
         """
@@ -73,10 +99,10 @@ class Light:
         :param new_max: New value for max, "converting to"
         :type new_max: int
         :return: Normalized brightness
-        :rtype: int
+        :rtype: float
 
         """
-        return math.floor(int(brightness) * (new_max / old_max))
+        return int(brightness) * (new_max / old_max)
 
     def get_state(self):
         """
@@ -89,10 +115,10 @@ class Light:
         return {
             "state": self.state,
             "brightness/state": str(
-                self.normalize_brightness(self.pins["white"]["brightness"], 1023, 255)
+                round(self.normalize_brightness(self.pins["white"]["brightness"], 1023, 255))
             ),
             "rgb/state": ",".join(
-                [str(self.normalize_brightness(b, 1023, 255)) for b in [
+                [str(round(self.normalize_brightness(b, 1023, 255))) for b in [
                      self.pins["red"]["brightness"],
                      self.pins["green"]["brightness"],
                      self.pins["blue"]["brightness"],
