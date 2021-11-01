@@ -48,6 +48,7 @@ if __name__ == '__main__':
         device_name = bulb_config["name"]
         main_dir = "/Users/alexkennedy/Developer/home/upython"
         ip = bulb_config["ip"]
+
         # get the paths to all py files in main_dir
         files = get_py_files_in_dir(main_dir)
 
