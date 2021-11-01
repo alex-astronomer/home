@@ -64,7 +64,6 @@ class Light:
         self.pins["blue"]["brightness"] = math.floor(
             self.full_range_color_values["blue"] * float(self.color_brightness)
         )
-        self.
 
     def set_rgb(self, red, green, blue):
         """
