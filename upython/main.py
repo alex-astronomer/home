@@ -7,7 +7,7 @@ from libs.MqttHandler import MqttHandler
 def main():
     light = Light()
     wifi = WifiHandler()
-    mqtt = MqttHandler(light)
+    mqtt = MqttHandler(light, !name)
     last_ping = time.time()
     print(light.get_state())
     mqtt.send_state()

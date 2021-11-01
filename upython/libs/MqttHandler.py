@@ -5,9 +5,9 @@ from umqtt.simple import MQTTClient
 class MqttHandler:
     client = None
     light = None
-    name = "umqtt-dev"
 
-    def __init__(self, light):
+    def __init__(self, light, name):
+        self.name = name
         self.client = MQTTClient(
             client_id=self.name,
             server="10.0.0.40",
@@ -31,7 +31,7 @@ class MqttHandler:
             print('not connected yet...')
             time.sleep(5)
         print('got connected to MQTT.')
-        self.client.publish("umqtt-dev/available", "1", True)
+        self.client.publish("{}/available".format(self.name), "1", True)
         for suffix in ["", "/brightness", "/rgb", "/white"]:
             self.client.subscribe("{}{}".format(self.name, suffix))
 
@@ -40,8 +40,8 @@ class MqttHandler:
         Send state of the lightbulb to the MQTT server.
 
         """
-        for key, value in self.light.get_state().items():
-            self.client.publish("umqtt-dev/{}".format(key), value)
+        for suffix, state in self.light.get_state().items():
+            self.client.publish("{}/{}".format(self.name, suffix), state)
 
     def msg_callback(self, topic, message):
         """
@@ -55,17 +55,17 @@ class MqttHandler:
         topic_str = topic.decode()
         message_str = message.decode()
         print("got callback {} {}".format(topic_str, message_str))
-        if topic_str == "umqtt-dev":
+        if topic_str == self.name:
             if message_str == "ON":
                 self.light.on()
             elif message_str == "OFF":
                 self.light.off()
-        elif topic_str == "umqtt-dev/brightness":
+        elif topic_str == "{}/brightness".format(self.name):
             self.light.set_color_brightness(message_str)
-        elif topic_str == "umqtt-dev/rgb":
+        elif topic_str == "{}/rgb".format(self.name):
             red, green, blue = message_str.split(',')
             self.light.set_rgb(red=red, green=green, blue=blue)
-        elif topic_str == "umqtt-dev/white":
+        elif topic_str == "{}/white".format(self.name):
             self.light.set_white(message_str)
         self.send_state()
 
