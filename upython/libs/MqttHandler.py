@@ -32,7 +32,7 @@ class MqttHandler:
             time.sleep(5)
         print('got connected to MQTT.')
         self.client.publish("umqtt-dev/available", "1", True)
-        for suffix in ["", "/brightness", "/rgb"]:
+        for suffix in ["", "/brightness", "/rgb", "/white"]:
             self.client.subscribe("{}{}".format(self.name, suffix))
 
     def send_state(self):
@@ -61,10 +61,11 @@ class MqttHandler:
             elif message_str == "OFF":
                 self.light.off()
         elif topic_str == "umqtt-dev/brightness":
-            self.light.set_brightness(message_str)
+            self.light.set_color_brightness(message_str)
         elif topic_str == "umqtt-dev/rgb":
-            red, green, blue = message_str.split(',')
-            self.light.set_rgb(red, green, blue)
+            self.light.set_rgb(*message_str.split(','))
+        elif topic_str == "umqtt-dev/white":
+            self.light.set_white(message_str)
         self.send_state()
 
 
