@@ -1,4 +1,4 @@
-import webrepl_cli
+from helpers import webrepl_cli
 import os
 import yaml
 
@@ -11,7 +11,7 @@ def replace_file_inplace(replace_this, with_this):
     :param with_this: replacement string
 
     """
-    main_dir = "/Users/alexkennedy/Developer/home/upython"
+    main_dir = "/upython"
     file = "main.py"
     full_path = f"{main_dir}/{file}"
     with open(full_path, "rt") as f:
@@ -40,13 +40,13 @@ def get_py_files_in_dir(dir):
 
 if __name__ == '__main__':
     # open config
-    with open("/Users/alexkennedy/Developer/home/deploy/config.yaml", "r") as f:
+    with open("/scripts/config.yaml", "r") as f:
         config = yaml.load(f, Loader=yaml.Loader)
 
     # for bulb in config[ENV]
-    for bulb_config in config["dev"]:
+    for bulb_config in config[os.environ.get("ENV")]:
         device_name = bulb_config["name"]
-        main_dir = "/Users/alexkennedy/Developer/home/upython"
+        main_dir = "/upython"
         ip = bulb_config["ip"]
 
         # get the paths to all py files in main_dir
