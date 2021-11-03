@@ -40,7 +40,7 @@ class MqttHandler:
         Send state of the lightbulb to the MQTT server.
 
         """
-        for suffix, state in self.light.get_state().items():
+        for suffix, state in self.light.state.items():
             self.client.publish("{}/{}".format(self.name, suffix), state)
 
     def msg_callback(self, topic, message):

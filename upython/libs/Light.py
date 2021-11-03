@@ -1,17 +1,37 @@
-from libs.PinAK import PinAK
+from libs.pin.AnalogPin import AnalogPin
 from libs.utilities import normalize
-from libs.PinBrightnessModifier import PinBrightnessModifier
+from libs.pin.AnalogPinModifier import AnalogPinModifier
+from libs.IDevice import IDevice
 
 
-class Light:
-    ON = 1023
-    OFF = 0
-    state = "OFF"
-
+class Light(IDevice):
     def __init__(self):
         rgb_gpio_mapping = {"red": 4, "green": 12, "blue": 14}
-        self.rgbw = {key: PinBrightnessModifier(value) for key, value in rgb_gpio_mapping.items()}
-        self.rgbw["white"] = PinAK(5)
+        self.pins = {key: AnalogPinModifier(value) for key, value in rgb_gpio_mapping.items()}
+        self.pins["white"] = AnalogPin(5)
+
+    @property
+    def state(self):
+        """
+        Get the current state of the lightbulb as a dict.
+
+        :return: Light bulb state dict (key: state topic, value: state)
+        :rtype: dict[str, str]
+
+        """
+        return {
+            "state": self.on_state,
+            "brightness/state": str(
+                round(normalize(self.pins["white"].state, 1023, 255))
+            ),
+            "rgb/state": ",".join(
+                [
+                    str(round(normalize(b, 1023, 255))) for b in [
+                        self.pins[color].modified_state for color in ["red", "green", "blue"]
+                    ]
+                ]
+            )
+        }
 
     def on(self):
         """
@@ -19,9 +39,9 @@ class Light:
 
         """
         # combine pins into a single dict, since treating all as base class
-        for pin in self.rgbw.values():
+        for pin in self.pins.values():
             pin.on()
-        self.state = "ON"
+        self.on_state = "ON"
 
     def off(self):
         """
@@ -29,9 +49,9 @@ class Light:
 
         """
         # combine pins into a single dict, since treating all as base class
-        for pin in self.rgbw.values():
+        for pin in self.pins.values():
             pin.off()
-        self.state = "OFF"
+        self.on_state = "OFF"
 
     def set_white(self, white_value):
         """
@@ -41,9 +61,9 @@ class Light:
         :type white_value: Union[int, str]
 
         """
-        self.rgbw["white"].set_desired_brightness(white_value)
+        self.pins["white"].set_state(white_value)
         for color in ["red", "green", "blue"]:
-            self.rgbw[color].set_desired_brightness(0)
+            self.pins[color].set_state(0)
 
     def set_color_brightness(self, brightness):
         """
@@ -52,9 +72,9 @@ class Light:
         :param brightness:
         :return:
         """
-        self.rgbw["white"].set_desired_brightness(0)
+        self.pins["white"].set_state(0)
         for color in ["red", "green", "blue"]:
-            self.rgbw[color].set_modifier(brightness)
+            self.pins[color].set_modifier(brightness)
 
     def set_rgb(self, **kwargs):
         """
@@ -68,31 +88,9 @@ class Light:
         :type blue: Union[int, str]
 
         """
-        self.rgbw["white"].set_desired_brightness(0)
+        self.pins["white"].set_state(0)
         for color in ["red", "green", "blue"]:
-            self.rgbw[color].set_desired_brightness(kwargs[color])
-
-    def get_state(self):
-        """
-        Get the current state of the lightbulb as a dict.
-
-        :return: Light bulb state dict (key: state topic, value: state)
-        :rtype: dict[str, str]
-
-        """
-        return {
-            "state": self.state,
-            "brightness/state": str(
-                round(normalize(self.rgbw["white"].raw_brightness, 1023, 255))
-            ),
-            "rgb/state": ",".join(
-                [
-                    str(round(normalize(b, 1023, 255))) for b in [
-                        self.rgbw[color].raw_brightness for color in ["red", "green", "blue"]
-                    ]
-                ]
-            )
-        }
+            self.pins[color].set_state(kwargs[color])
 
     def blink(self, color="white", delay=0.250):
         """
