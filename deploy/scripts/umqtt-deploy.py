@@ -1,3 +1,11 @@
+"""
+Deploy uPython to Device
+
+Usage:
+    umqtt-deploy <device>
+
+"""
+from docopt import docopt
 from helpers import webrepl_cli
 import os
 import yaml
@@ -11,8 +19,8 @@ def replace_file_inplace(replace_this, with_this):
     :param with_this: replacement string
 
     """
-    main_dir = "/upython"
-    file = "main.py"
+    main_dir = "/upython/mains"
+    file = "outlet-main.py"
     full_path = f"{main_dir}/{file}"
     with open(full_path, "rt") as f:
         data = f.read().replace(replace_this, with_this)
@@ -39,12 +47,13 @@ def get_py_files_in_dir(dir):
 
 
 if __name__ == '__main__':
+    device_type = docopt(__doc__)["<device>"]
     # open config
     with open("/scripts/config.yaml", "r") as f:
         config = yaml.load(f, Loader=yaml.Loader)
 
     # for bulb in config[ENV]
-    for bulb_config in config[os.environ.get("ENV")]:
+    for bulb_config in config[os.environ.get("ENV", "dev")]:
         device_name = bulb_config["name"]
         main_dir = "/upython"
         ip = bulb_config["ip"]
@@ -63,16 +72,18 @@ if __name__ == '__main__':
         # after zipping the src and dst files together, upload each one to the proper uPython device
         for src_dst in zipper:
             dest_with_host = f"{ip}:{src_dst[1]}"
-            if "main.py" in src_dst[0]:
-                replace_file_inplace("!name", f"'{device_name}'")
-                webrepl_cli.main(*[
-                    "webrepl_cli.py",
-                    "-p",
-                    "assblood",
-                    src_dst[0],
-                    dest_with_host,
-                ])
-                replace_file_inplace(f"'{device_name}'", "!name")
+            if "main" in src_dst[0]:
+                if f"{device_type}-main.py" in src_dst[0]:
+                    print(src_dst[0])
+                    replace_file_inplace("!name", f"'{device_name}'")
+                    webrepl_cli.main(*[
+                        "webrepl_cli.py",
+                        "-p",
+                        "assblood",
+                        src_dst[0],
+                        f"{ip}:main.py",
+                    ])
+                    replace_file_inplace(f"'{device_name}'", "!name")
             else:
                 webrepl_cli.main(*[
                     "webrepl_cli.py",
