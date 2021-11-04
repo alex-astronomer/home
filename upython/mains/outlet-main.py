@@ -1,15 +1,15 @@
 import time
-from libs.Light import Light
+from libs.Outlet import Outlet
 from libs.WifiHandler import WifiHandler
-from libs.MqttHandler import MqttHandler
+from libs.OutletMqttHandler import OutletMqttHandler
 
 
 def main():
-    light = Light()
+    outlet = Outlet()
     wifi = WifiHandler()
-    mqtt = MqttHandler(light, !name)
+    mqtt = OutletMqttHandler(outlet, !name)
     last_ping = time.time()
-    print(light.get_state())
+    print(outlet.state)
     mqtt.send_state()
     while True:
         # loop through to check messages and every 8 seconds ping to keep the mqtt connection alive

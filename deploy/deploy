@@ -1,4 +1,4 @@
 #!/bin/bash
 
 docker build -t upython-deploy .
-docker run -v "${SMART_REPO_HOME}"/deploy/deploy_volume:/scripts -v "${SMART_REPO_HOME}"/upython:/upython -e ENV="dev" upython-deploy python /scripts/umqtt-deploy.py
+docker run -v "${SMART_REPO_HOME}"/deploy/scripts:/scripts -v "${SMART_REPO_HOME}"/upython:/upython -e ENV="dev" upython-deploy python /scripts/umqtt-deploy.py outlet

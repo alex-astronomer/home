@@ -192,7 +192,7 @@ def parse_remote(remote):
 
 def main(*args):
     args = list(args)
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         args = sys.argv
     if len(args) not in (3, 5):
         help(1)

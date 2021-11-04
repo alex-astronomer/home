@@ -2,11 +2,12 @@ import time
 from umqtt.simple import MQTTClient
 
 
-class MqttHandler:
+class OutletMqttHandler:
     client = None
-    light = None
+    outlet = None
+    name = None
 
-    def __init__(self, light, name):
+    def __init__(self, outlet, name):
         self.name = name
         self.client = MQTTClient(
             client_id=self.name,
@@ -16,7 +17,7 @@ class MqttHandler:
             password="assblood",
             keepalive=10,
         )
-        self.light = light
+        self.outlet = outlet
         self.client.set_callback(self.msg_callback)
         self.client.set_last_will("{}/available".format(self.name), "0")
         self.connect()
@@ -32,7 +33,7 @@ class MqttHandler:
             time.sleep(5)
         print('got connected to MQTT.')
         self.client.publish("{}/available".format(self.name), "1", True)
-        for suffix in ["", "/brightness", "/rgb", "/white"]:
+        for suffix in [""]:
             self.client.subscribe("{}{}".format(self.name, suffix))
 
     def send_state(self):
@@ -40,7 +41,7 @@ class MqttHandler:
         Send state of the lightbulb to the MQTT server.
 
         """
-        for suffix, state in self.light.state.items():
+        for suffix, state in self.outlet.state.items():
             self.client.publish("{}/{}".format(self.name, suffix), state)
 
     def msg_callback(self, topic, message):
@@ -57,16 +58,9 @@ class MqttHandler:
         print("got callback {} {}".format(topic_str, message_str))
         if topic_str == self.name:
             if message_str == "ON":
-                self.light.on()
+                self.outlet.on()
             elif message_str == "OFF":
-                self.light.off()
-        elif topic_str == "{}/brightness".format(self.name):
-            self.light.set_color_brightness(message_str)
-        elif topic_str == "{}/rgb".format(self.name):
-            red, green, blue = message_str.split(',')
-            self.light.set_rgb(red=red, green=green, blue=blue)
-        elif topic_str == "{}/white".format(self.name):
-            self.light.set_white(message_str)
+                self.outlet.off()
         self.send_state()
 
 
