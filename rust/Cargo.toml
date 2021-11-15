@@ -7,3 +7,8 @@ edition = "2021"
 
 [dependencies]
 paho-mqtt = "0.9.1"
+rstest = "0.11.0"
+const_format = "0.2.22"
+thiserror = "1.0.30"
+# rppal = "0.13.1"
+openssl = { version = '0.10', features = ["vendored"] }

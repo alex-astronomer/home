@@ -1,6 +1,8 @@
 use paho_mqtt;
 mod light;
-use light::{Light, Instruction};
+mod hardware;
+
+use light::{Light};
 
 
 fn setup_mqtt(client_id: &str) -> paho_mqtt::Client {
@@ -30,21 +32,9 @@ fn main() {
     let mut mqtt_client = setup_mqtt(client_id);
     let receiver = mqtt_client.start_consuming();
     let light = Light::new(String::from(client_id), mqtt_client);
-
     loop {
-        // loop
         if let Ok(Some(msg)) = receiver.try_recv() {
-            if let Some(inst) = Instruction::from_message(msg, &light) {
-                light.handle_action(inst);
-            }
+            light.handle_action(msg);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }
