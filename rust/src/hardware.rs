@@ -81,3 +81,13 @@ impl LedController {
         ).expect("Could not set pwm frequency");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::*;
+
+    #[rstest]
+    fn test_rgb() {
+        assert!(true);
+    }
+}
