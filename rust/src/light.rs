@@ -1,74 +1,45 @@
 use std::str::FromStr;
 use thiserror::Error;
-// use rppal::gpio::Gpio;
-// use crate::hardware::LedController;
+use rppal::gpio;
+use crate::hardware::LedController;
 
 // IMPL
 pub struct Light {
     name: String,
     mqtt_client: paho_mqtt::Client,
-    // led_controller: LedController,
+    led_controller: LedController,
 }
 
 impl Light {
-    pub fn new(name: String, mqtt_client: paho_mqtt::Client) -> Light {
-        // Gpio::new()?;
-
-
-        return 1.0;
-        Light {
+    pub fn new(name: String, mqtt_client: paho_mqtt::Client) -> gpio::Result<Light> {
+        Ok(Light {
             name,
             mqtt_client,
-            // led_controller: LedController::new()?
+            led_controller: LedController::new()?
+        })
+    }
+
+    pub fn handle_action(self, action: paho_mqtt::Message) -> Self {
+        match Instruction::from_message(&action, &self.name) {
+            Some(instruction) => {
+                // TODO: convert this into matching on instruction instead of moving in the match
+                let new_state = match instruction {
+                    Instruction::Command(ref state) => self.led_controller.command(state.to_bool()),
+                    Instruction::Brightness(brightness) => self.led_controller.brightness(brightness),
+                    Instruction::Rgb(ref rgb) => self.led_controller.rgb(rgb),
+                };
+                // parrot the new value back to HA to confirm the state change
+                if let Ok(payload) = String::from_utf8(action.payload().to_vec()) {
+                    self.mqtt_client.publish(paho_mqtt::Message::new(
+                        format!("{}/{}", &self.name, instruction.get_state_suffix()), 
+                        payload,
+                        0
+                    )).expect("Mismatched state! Godspeed, chief. *salutes*");
+                };
+                Light {led_controller: new_state, ..self}
+            },
+            None => self
         }
-    }
-
-    pub fn handle_action(&self, action: paho_mqtt::Message) {
-        if let Some(action_instruction) = Instruction::from_message(&action, self){
-            match action_instruction {
-                Instruction::Command(ref state) => self.command(&state),
-                Instruction::Brightness(brightness) => self.brightness(brightness),
-                Instruction::Rgb(ref rgb) => self.rgb(rgb),
-            };
-        }
-    }
-
-    fn command(&self, state: &CommandState) {
-        // let gpio_acesss = Gpio::new().expect("couldn't init gpio access");
-        // let mut white_pin = gpio_acesss.get(23).expect("couldn't init pin 32 gpio").into_output();
-        // match state {
-        //     CommandState::On => white_pin.set_high(),
-        //     CommandState::Off => white_pin.set_low(),
-        // };
-        self.mqtt_client.publish(
-            paho_mqtt::Message::new(
-                format!("{}/state", self.name), state.to_string(), 0
-            )
-        ).expect(
-            "On/Off state mismatch! Command state change failed to send. God speed, sir. *salutes*"
-        );
-    }
-
-    fn brightness(&self, brightness: u8) {
-        println!("Brightness set to {}", brightness);
-        self.mqtt_client.publish(
-            paho_mqtt::Message::new(
-                format!("{}/state", self.name), brightness.to_string(), 0
-            )
-        ).expect(
-            "Brightness state mismatch! Command state change failed to send. God speed, sir. *salutes*"
-        );
-    }
-
-    fn rgb(&self, rgb: &Rgb) {
-        println!("Rgb set to {:?}", rgb);
-        self.mqtt_client.publish(
-            paho_mqtt::Message::new(
-                format!("{}/state", self.name), rgb.to_string(), 0
-            )
-        ).expect(
-            "Rgb state mismatch! Command state change failed to send. God speed, sir. *salutes*"
-        );
     }
 }
 
@@ -80,8 +51,7 @@ enum Instruction {
 }
 
 impl Instruction {
-    pub fn from_message(msg: &paho_mqtt::Message, for_device: &Light) -> Option<Instruction> {
-        let device_name = &for_device.name;
+    pub fn from_message(msg: &paho_mqtt::Message, device_name: &str) -> Option<Instruction> {
         match msg.topic() {
             command_topic if command_topic == device_name => {
                 // TODO just convert command state to take from_str() From impl
@@ -98,6 +68,14 @@ impl Instruction {
                 Some(Instruction::Rgb(Rgb::from_str(&rgb_str).ok()?))
             }
             _ => None,
+        }
+    }
+
+    pub fn get_state_suffix(&self) -> String {
+        match self {
+            Instruction::Command(_) => String::from("state"),
+            Instruction::Brightness(_) => String::from("brightness/state"),
+            Instruction::Rgb(_) => String::from("rgb/state"),
         }
     }
 }
@@ -119,6 +97,13 @@ impl CommandState {
             _ => Ok(None),
         }
     }
+
+    fn to_bool(&self) -> bool {
+        match self {
+            &CommandState::On => true,
+            &CommandState::Off => false,
+        }
+    }
 }
 
 impl std::fmt::Display for CommandState {
@@ -131,7 +116,7 @@ impl std::fmt::Display for CommandState {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Rgb(u8, u8, u8);
+pub struct Rgb(pub u8, pub u8, pub u8);
 
 impl std::fmt::Display for Rgb {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -145,7 +130,6 @@ impl std::str::FromStr for Rgb {
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         let str_split_iter: Vec<Result<u8, std::num::ParseIntError>> = from.split(',')
         .map(|n| n.parse::<u8>())
-        .rev()
         .collect();
 
         str_split_iter.len();
@@ -162,7 +146,7 @@ impl std::str::FromStr for Rgb {
 }
 
 #[derive(Error, Debug, PartialEq)]
-enum RgbFromError {
+pub enum RgbFromError {
     #[error("rgb string initializer requires that there are 3 color u8 values separated by commas")]
     InvalidStructure,
     #[error("error while parsing one of the elements of the Rgb string to u8")]
@@ -173,13 +157,13 @@ enum RgbFromError {
 // mod tests {
 //     use super::*;
 //     use rstest::*;
-//
+
 //     const INVALID_SEQUENCE: &[u8] = &[0xc3_u8, 0x28_u8];
-//
+
 //     mod rgb {
 //         use super::*;
 //         use std::num::IntErrorKind;
-//
+
 //         #[rstest(rgb, expected,
 //             case::max(Rgb(255, 255, 255), "255,255,255"),
 //             case::zeros(Rgb(0, 0, 0),"0,0,0"),
@@ -188,7 +172,7 @@ enum RgbFromError {
 //         fn test_to_string(rgb: Rgb, expected: &str) {
 //             assert_eq!(rgb.to_string(), expected);
 //         }
-//
+
 //         #[rstest(from, expected,
 //             case::max("255,255,255", Rgb(255, 255, 255)),
 //             case::mid("100,100,100", Rgb(100, 100, 100)),
@@ -197,7 +181,7 @@ enum RgbFromError {
 //         fn test_from_str_valid(from: &str, expected: Rgb) {
 //             assert_eq!(Rgb::from_str(from).unwrap(), expected);
 //         }
-//
+
 //         #[rstest(from, err,
 //             case("0,0,256", &IntErrorKind::PosOverflow),
 //             case("11568,256,0", &IntErrorKind::PosOverflow),
@@ -217,11 +201,11 @@ enum RgbFromError {
 //                     err
 //                 );
 //             }
-//
+
 //         }
-//
+
 //         #[rstest(from, err,
-//
+
 //             case("123,123", RgbFromError::InvalidStructure),
 //             case("123", RgbFromError::InvalidStructure),
 //             case("123,123,123,123", RgbFromError::InvalidStructure),
@@ -234,6 +218,7 @@ enum RgbFromError {
 //             );
 //         }
 //     }
+// }
 //
 //     mod command_state {
 //         use super::*;

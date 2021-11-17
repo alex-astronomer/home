@@ -16,7 +16,7 @@ fn setup_mqtt(client_id: &str) -> paho_mqtt::Client {
         paho_mqtt::ConnectOptionsBuilder::new()
             .user_name("alex")
             .password("assblood")
-            .keep_alive_interval(std::time::Duration::from_secs(5))
+            .keep_alive_interval(std::time::Duration::from_secs(120))
             .will_message(paho_mqtt::Message::new(format!("{}/available", client_id), "0", 0))
             .finalize()
     ).expect("Error connecting MQTT client.");
@@ -31,10 +31,10 @@ fn main() {
     let client_id = "rust-dev";
     let mut mqtt_client = setup_mqtt(client_id);
     let receiver = mqtt_client.start_consuming();
-    let light = Light::new(String::from(client_id), mqtt_client);
+    let mut light = Light::new(String::from(client_id), mqtt_client).unwrap();
     loop {
         if let Ok(Some(msg)) = receiver.try_recv() {
-            light.handle_action(msg);
+            light = light.handle_action(msg);
         }
     }
 }
