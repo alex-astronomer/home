@@ -1,6 +1,9 @@
 use paho_mqtt;
 mod light;
 mod hardware;
+// use hardware::PINS;
+use rppal::gpio::Gpio;
+use std::sync::Mutex;
 
 use light::{Light};
 
@@ -31,10 +34,10 @@ fn main() {
     let client_id = "rust-dev";
     let mut mqtt_client = setup_mqtt(client_id);
     let receiver = mqtt_client.start_consuming();
-    let mut light = Light::new(String::from(client_id), mqtt_client).unwrap();
+    let light = Light::new(String::from(client_id), mqtt_client);
     loop {
         if let Ok(Some(msg)) = receiver.try_recv() {
-            light = light.handle_action(msg);
+            light.handle_action(msg);
         }
     }
 }

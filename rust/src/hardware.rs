@@ -1,93 +1,193 @@
-use rppal::gpio::{Gpio, Error, OutputPin};
+use rppal::gpio::{Gpio, OutputPin};
 use crate::light::Rgb;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
+
+#[derive(Debug)]
+pub struct AnalogPin {
+    pin: OutputPin,
+    desired_brightness: u8,
+}
 
 pub struct LedController {
-    // TODO: extend output pin into a new struct that includes the brightness of that pin
-    // TODO: put all pins into one rgbw array
-    white: OutputPin,
+    pins: [AnalogPin; 4],
     on: bool,
-    brightness: u8,
-    rgb: [OutputPin; 3],
-    rgb_brightness: [u8; 3],
 }
 
 impl LedController {
-    pub fn new() -> Result<LedController, Error> {
-        let mut new = LedController::default()?;
-        new.off();
-        return Ok(new);
-    }
-
-    pub fn default() -> Result<LedController, Error> {
-        Ok(LedController{
-            white: Gpio::new()?.get(23)?.into_output(),
-            on: false,
-            brightness: 0,
-            rgb: [
-                Gpio::new()?.get(17)?.into_output(),
-                Gpio::new()?.get(27)?.into_output(),
-                Gpio::new()?.get(22)?.into_output(),
+    pub fn default() -> Self {
+        LedController {
+            pins: [
+                AnalogPin {
+                    pin: Gpio::new().unwrap().get(17).unwrap().into_output(),
+                    desired_brightness: 0
+                },
+                AnalogPin {
+                    pin: Gpio::new().unwrap().get(27).unwrap().into_output(),
+                    desired_brightness: 0
+                },
+                AnalogPin {
+                    pin: Gpio::new().unwrap().get(22).unwrap().into_output(),
+                    desired_brightness: 0
+                },
+                AnalogPin {
+                    pin: Gpio::new().unwrap().get(23).unwrap().into_output(),
+                    desired_brightness: 0
+                }
             ],
-            rgb_brightness: [0, 0, 0],
-        })
+            on: false,
+        }
     }
 
-    pub fn command(mut self, on: bool) -> Self {
+    pub fn command(&mut self, on: bool) {
         match on {
             true => self.on(),
             false => self.off(),
         };
-        Self {
-            on,
-            ..self
+        self.on = on;
+    }
+
+    pub fn brightness(&mut self, brightness: u8) {
+        self.pins[3].desired_brightness = brightness;
+        for i in 0..3 {
+            self.pins[i].desired_brightness = 0;
         }
     }
 
-    pub fn brightness(self, brightness: u8) -> Self {
-        Self {
-            brightness,
-            rgb_brightness: [0, 0, 0],
-            ..self
-        }
-    }
-
-    pub fn rgb(self, rgb: &Rgb) -> Self {
+    pub fn rgb(&mut self, rgb: &Rgb) {
         let Rgb(red, green, blue) = rgb;
-        Self {
-            brightness: 0,
-            rgb_brightness: [*red, *green, *blue],
-            ..self
+        for (i, color_brightness) in [*red, *green, *blue].iter().enumerate() {
+            self.pins[i].desired_brightness = *color_brightness;
         }
+        self.pins[3].desired_brightness = 0;
+
     }
 
-    fn off(&mut self) {
-        Self::expect_set_pwm_frequency(&mut self.white, 0);
-        for i in 0..3 {
-            Self::expect_set_pwm_frequency(&mut self.rgb[i], 0);
-        }
+    fn off(&mut self) -> [f64; 4] {
+        self.pins
+            .iter_mut()
+            .map(|p| Self::expect_set_pwm_frequency(p, 0))
+            .collect::<Vec<f64>>()
+            .try_into()
+            .unwrap()
     }
 
-    fn on(&mut self) {
-        Self::expect_set_pwm_frequency(&mut self.white, self.brightness);
-        for i in 0..3 {
-            Self::expect_set_pwm_frequency(&mut self.rgb[i], self.rgb_brightness[i]);
-        }
+    fn on(&mut self) -> [f64; 4] {
+        self.pins
+            .iter_mut()
+            .map(|p| Self::expect_set_pwm_frequency(p, p.desired_brightness))
+            .collect::<Vec<f64>>()
+            .try_into()
+            .unwrap()
     }
 
-    fn expect_set_pwm_frequency(pin: &mut OutputPin, brightness: u8) {
-        pin.set_pwm_frequency(
-            1000f64, 
-            (1.0/255 as f64) * brightness as f64
-        ).expect("Could not set pwm frequency");
+    fn expect_set_pwm_frequency(color_pin: &mut AnalogPin, brightness: u8) -> f64 {
+        let frequency = 1000.0;
+        let duty_cycle = (1.0/255.0) * brightness as f64;
+        color_pin.pin.set_pwm_frequency(frequency, duty_cycle).expect("Could not set pwm frequency");
+        duty_cycle
     }
+}
+
+lazy_static! {
+    pub static ref LED_CONTROLLER: Mutex<LedController> = Mutex::new(LedController::default());
 }
 
 #[cfg(test)]
 mod tests {
     use rstest::*;
+    use super::*;
+    use float_cmp::{assert_approx_eq};
+
+    #[rstest(input,
+        case(true),
+        case(false),
+    )]
+    fn test_command(input: bool) {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        led_controller_locked.command(input);
+        assert_eq!(led_controller_locked.on, input);
+    }
+    // TODO: stdize the array equals stuff
+    // TODO: make method that gets the desired brightness of all pins as an array maybe a calculated property?
+    #[rstest]
+    fn test_brightness_exhaustive() {
+        for i in 0..=255 {
+            let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+            led_controller_locked.rgb(&Rgb(255, 255, 255));
+            led_controller_locked.brightness(i);
+            let expected = [0, 0, 0, i];
+            let actual: Vec<u8> = led_controller_locked.pins
+                .iter()
+                .map(|ap| ap.desired_brightness)
+                .collect();
+            println!("{:?}, {:?}", actual, expected);
+            for (actual, expected) in actual.iter().zip(expected.iter()).collect::<Vec<(&u8, &u8)>>() {
+                assert_eq!(actual, expected);
+            }
+        }
+    }
+
+    #[rstest(input, expected,
+        case(Rgb(0, 0, 0), [0; 4]),
+        case(Rgb(123, 123, 123), [123, 123, 123, 0]),
+        case(Rgb(255, 255, 255), [255, 255, 255, 0]),
+    )]
+    fn test_rgb(input: Rgb, expected: [u8; 4]) {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        led_controller_locked.brightness(255);
+        led_controller_locked.rgb(&input);
+        let current_brightness: Vec<u8> = led_controller_locked.pins
+            .iter()
+            .map(|ap| ap.desired_brightness)
+            .collect();
+        println!("{:?}", current_brightness);
+        for (actual, expected) in current_brightness.iter().zip(expected.iter()).collect::<Vec<(&u8, &u8)>>() {
+            assert_eq!(actual, expected);
+        }
+    }
 
     #[rstest]
-    fn test_rgb() {
-        assert!(true);
+    fn test_on() {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        led_controller_locked.brightness(0);
+        for (actual, expected) in led_controller_locked.on().iter().zip([0f64; 4].iter()).collect::<Vec<(&f64, &f64)>>() {
+            assert_approx_eq!(f64, *actual, *expected, epsilon = 0.0001);
+        }
+        led_controller_locked.brightness(123);
+        for (actual, expected) in led_controller_locked.on().iter().zip([0.0, 0.0, 0.0, 0.4823].iter()).collect::<Vec<(&f64, &f64)>>() {
+            assert_approx_eq!(f64, *actual, *expected, epsilon = 0.0001);
+        }
+    }
+
+    #[rstest]
+    fn test_off() {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        let brightness = 123;
+        led_controller_locked.brightness(brightness);
+        for (a, e) in led_controller_locked.off().iter().zip([0f64; 4].iter()).collect::<Vec<(&f64, &f64)>>() {
+            assert_approx_eq!(f64, *a, *e, epsilon = 0.0001);
+        }
+        assert_eq!(led_controller_locked.pins[3].desired_brightness, brightness);
+    }
+
+    #[rstest]
+    fn test_expect_set_pwm_frequency_exhaustive() {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        for i in 0..=255 {
+            LedController::expect_set_pwm_frequency(&mut led_controller_locked.pins[3], i);
+        }
+    }
+
+    #[rstest(input, expected,
+        case(0, 0.0),
+        case(123, 0.4823),
+        case(255, 1.0),
+    )]
+    fn test_expect_set_pwm_frequency_parallel_access_to_hardware(input: u8, expected: f64) {
+        let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
+        let duty = LedController::expect_set_pwm_frequency(&mut led_controller_locked.pins[3], input);
+        println!("{} == {}", duty, expected);
+        assert_approx_eq!(f64, duty, expected, epsilon = 0.0001);
     }
 }
