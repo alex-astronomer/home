@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use thiserror::Error;
-use crate::hardware::LED_CONTROLLER;
+use crate::hardware::{LED_CONTROLLER, LedController};
+use std::sync::MutexGuard;
 
 // IMPL
 pub struct Light  {
@@ -16,6 +17,8 @@ impl Light {
         }
     }
 
+    // TODO: pull light specific command code into the light struct
+
     pub fn handle_action(&self, action: paho_mqtt::Message) {
         if let Some(instruction) = Instruction::from_message(&action, &self.name) {
             let mut led_controller_locked = LED_CONTROLLER.lock().unwrap();
@@ -24,15 +27,23 @@ impl Light {
                 Instruction::Brightness(brightness) => led_controller_locked.brightness(*brightness),
                 Instruction::Rgb(rgb) => led_controller_locked.rgb(rgb),
             };
-            // TODO: send back the actual state of the bulb
-            if let Ok(payload) = String::from_utf8(action.payload().to_vec()) {
-                self.mqtt_client.publish(paho_mqtt::Message::new(
-                    format!("{}/{}", &self.name, instruction.get_state_suffix()), 
-                    payload,
-                    0
-                )).expect("Mismatched state! Godspeed, chief. *salutes*");
-            };
+            self.send_state(instruction, led_controller_locked);
         }
+    }
+
+    fn send_state(&self, inst: Instruction, led_controller: MutexGuard<LedController>) {
+        match inst {
+            Instruction::Command(_) => { self.mqtt_client.publish(paho_mqtt::Message::new(format!("{}/state", &self.name), CommandState::from(led_controller.on_state()).to_string(), 0)).expect("mismatch state. see ya!"); },
+            Instruction::Brightness(_) | Instruction::Rgb(_) => {
+                self.mqtt_client.publish(paho_mqtt::Message::new(format!("{}/brightness/state", &self.name), led_controller.pins()[3].desired_brightness().to_string(), 0)).expect("mismatch state. see ya!");
+                let rgb_payload = Rgb(
+                    led_controller.pins()[0].desired_brightness(),
+                    led_controller.pins()[1].desired_brightness(),
+                    led_controller.pins()[2].desired_brightness(),
+                );
+                self.mqtt_client.publish(paho_mqtt::Message::new(format!("{}/rgb/state", &self.name), rgb_payload.to_string(), 0)).expect("mismatch state. see ya!");
+            }
+        };
     }
 }
 
@@ -63,24 +74,16 @@ impl Instruction {
             _ => None,
         }
     }
-
-    pub fn get_state_suffix(&self) -> String {
-        match self {
-            Instruction::Command(_) => String::from("state"),
-            Instruction::Brightness(_) => String::from("brightness/state"),
-            Instruction::Rgb(_) => String::from("rgb/state"),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
-enum CommandState {
+pub enum CommandState {
     On,
     Off
 }
 
 #[derive(Error, Debug)]
-enum CommandStateError {
+pub enum CommandStateError {
     #[error("input bytes must be ON/OFF")]
     InvalidCommandState,
     #[error("error while parsing the state to a string from bytes")]
@@ -105,6 +108,15 @@ impl From<&CommandState> for bool {
         match command_state {
             CommandState::On => true,
             CommandState::Off => false,
+        }
+    }
+}
+
+impl From<bool> for CommandState {
+    fn from(bool_: bool) -> Self {
+        match bool_ {
+            true => CommandState::On,
+            false => CommandState::Off,
         }
     }
 }
@@ -318,15 +330,6 @@ mod tests {
                     Some(Instruction::Brightness(i))
                 );
             }
-        }
-
-        #[rstest(input, expected,
-            case(Instruction::Command(CommandState::On), "state"),
-            case(Instruction::Brightness(5), "brightness/state"),
-            case(Instruction::Rgb(Rgb(0, 0, 0)), "rgb/state"),
-        )]
-        fn test_get_state_suffix(input: Instruction, expected: String) {
-            assert_eq!(input.get_state_suffix(), expected);
         }
     }
 }

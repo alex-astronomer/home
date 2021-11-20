@@ -1,5 +1,5 @@
 use rppal::gpio::{Gpio, OutputPin};
-use crate::light::Rgb;
+use crate::light::{Rgb, CommandState};
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 
@@ -7,6 +7,12 @@ use lazy_static::lazy_static;
 pub struct AnalogPin {
     pin: OutputPin,
     desired_brightness: u8,
+}
+
+impl AnalogPin {
+    pub fn desired_brightness(&self) -> u8 {
+        self.desired_brightness
+    }
 }
 
 pub struct LedController {
@@ -39,7 +45,15 @@ impl LedController {
         }
     }
 
-    pub fn command(&mut self, on: bool) {
+    pub fn on_state(&self) -> bool {
+        self.on
+    }
+
+    pub fn pins(&self) -> &[AnalogPin; 4] {
+        &self.pins
+    }
+
+    pub fn command(&mut self, on: bool){
         match on {
             true => self.on(),
             false => self.off(),
@@ -47,7 +61,7 @@ impl LedController {
         self.on = on;
     }
 
-    pub fn brightness(&mut self, brightness: u8) {
+    pub fn brightness(&mut self, brightness: u8)  {
         self.pins[3].desired_brightness = brightness;
         for i in 0..3 {
             self.pins[i].desired_brightness = 0;
@@ -60,7 +74,6 @@ impl LedController {
             self.pins[i].desired_brightness = *color_brightness;
         }
         self.pins[3].desired_brightness = 0;
-
     }
 
     fn off(&mut self) -> [f64; 4] {
