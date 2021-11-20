@@ -1,0 +1,18 @@
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+paho-mqtt = "0.9.1"
+rstest = "0.11.0"
+const_format = "0.2.22"
+thiserror = "1.0.30"
+rppal = "0.13.1"
+openssl = { version = '0.10.30', features = ["vendored"] }
+cached = "0.26.2"
+lazy_static = "1.4.0"
+float-cmp = "0.9.0"
+assert-type-eq = "0.1.0"
